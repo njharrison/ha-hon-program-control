@@ -1,0 +1,11 @@
+{
+  "domain": "hon_program_control",
+  "name": "hOn Program Control",
+  "version": "0.1.0",
+  "documentation": "https://github.com/njharrison/ha-hon-program-control",
+  "issue_tracker": "https://github.com/njharrison/ha-hon-program-control/issues",
+  "codeowners": ["@njharrison"],
+  "config_flow": true,
+  "iot_class": "local_push",
+  "dependencies": ["hon"]
+}
