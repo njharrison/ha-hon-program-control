@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 
 from .const import DOMAIN, HON_DOMAIN, CONF_MAC, CONF_HON_ENTRY
@@ -19,11 +18,16 @@ def _washing_machines(hass):
             if device is None or "startProgram" not in getattr(device, "commands", {}):
                 continue
             appliance = getattr(device, "appliance", {})
-            type_id = str(appliance.get("applianceTypeId", ""))
-            type_name = str(appliance.get("applianceTypeName", "")).lower()
-            if type_id != "1" and "wash" not in type_name:
+            type_name = str(appliance.get("applianceTypeName", "")).strip().lower()
+            # hOn commonly reports a washing machine as "WM"; accept descriptive
+            # names too, but don't expose startProgram controls for other appliances.
+            if type_name != "wm" and "wash" not in type_name:
                 continue
-            name = getattr(device, "name", None) or appliance.get("nickName") or "Washing Machine"
+            name = (
+                getattr(device, "name", None)
+                or appliance.get("nickName")
+                or "Washing Machine"
+            )
             found[f"{hon_key}|{mac}"] = (str(name), hon_key, mac)
     return found
 
