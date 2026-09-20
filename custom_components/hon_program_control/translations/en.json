@@ -1,0 +1,17 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Choose washing machine",
+        "description": "Select the washing machine already connected through hOn.",
+        "data": {
+          "washing_machine": "Washing machine"
+        }
+      }
+    },
+    "abort": {
+      "no_washing_machines": "No compatible hOn washing machines were found. Make sure hOn is loaded first.",
+      "already_configured": "This washing machine is already configured."
+    }
+  }
+}
