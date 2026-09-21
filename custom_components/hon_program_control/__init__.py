@@ -6,7 +6,8 @@ from homeassistant.helpers.storage import Store
 
 from .const import DOMAIN, PLATFORMS, HON_DOMAIN, CONF_MAC, CONF_HON_ENTRY
 
-STORAGE_VERSION = 1
+STORAGE_VERSION = 2
+PRESET_NAMES = ["Linen", "Reds", "Greys", "Whites", "Delicate"]
 
 
 def _hon_connections(hass: HomeAssistant):
@@ -62,10 +63,12 @@ class ProgramController:
         self.device = device
         self.listeners = set()
         self.recent_programs = []
+        self.presets = {}
+        self.selected_preset = PRESET_NAMES[0]
         self.store = Store(
             hass,
             STORAGE_VERSION,
-            f"{DOMAIN}.{entry.data[CONF_MAC]}.recent_programs",
+            f"{DOMAIN}.{entry.data[CONF_MAC]}.settings",
         )
 
         command = self.command
@@ -82,6 +85,21 @@ class ProgramController:
             for program in stored.get("recent_programs", [])
             if program in valid
         ][:3]
+        self.presets = {
+            name: preset
+            for name, preset in stored.get("presets", {}).items()
+            if name in PRESET_NAMES and preset.get("program") in valid
+        }
+        selected = stored.get("selected_preset")
+        if selected in PRESET_NAMES:
+            self.selected_preset = selected
+
+    async def _async_save_settings(self):
+        await self.store.async_save({
+            "recent_programs": self.recent_programs,
+            "presets": self.presets,
+            "selected_preset": self.selected_preset,
+        })
 
     @property
     def command(self):
@@ -142,6 +160,36 @@ class ProgramController:
         parameter.value = value
         self._notify()
 
+    async def async_select_preset(self, name: str):
+        if name not in PRESET_NAMES:
+            raise ValueError(f"Unknown preset: {name}")
+        self.selected_preset = name
+        preset = self.presets.get(name)
+        if preset is not None:
+            self.select_program(preset["program"])
+            for key, value in preset.get("parameters", {}).items():
+                parameter = self.parameter(key)
+                if parameter is not None:
+                    try:
+                        parameter.value = value
+                    except ValueError:
+                        pass
+        await self._async_save_settings()
+        self._notify()
+
+    async def async_save_preset(self):
+        if self.program is None:
+            raise ValueError("No program selected")
+        self.presets[self.selected_preset] = {
+            "program": self.program,
+            "parameters": {
+                key: parameter.value
+                for key, parameter in self.parameters.items()
+            },
+        }
+        await self._async_save_settings()
+        self._notify()
+
     async def async_start(self):
         if self.program is None:
             raise ValueError("No program selected")
@@ -156,7 +204,7 @@ class ProgramController:
                 self.program,
                 *[p for p in self.recent_programs if p != self.program],
             ][:3]
-            await self.store.async_save({"recent_programs": self.recent_programs})
+            await self._async_save_settings()
             self._notify()
 
         return result
