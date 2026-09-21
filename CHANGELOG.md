@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.3
+
+- Fix Delete preset remaining unavailable after selecting or saving a preset.
+- Buttons now subscribe to controller state changes just like the other entities.
+
+
 ## 0.3.2
 
 - Fix Preset Name starting with an invalid empty value when its minimum length was 1.
