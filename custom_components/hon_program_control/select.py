@@ -15,6 +15,11 @@ PARAMETERS = {
 }
 
 
+def program_label(program: str) -> str:
+    """Turn an hOn program ID into a human-friendly Pascal/Title Case label."""
+    return " ".join(word.capitalize() for word in program.split("_"))
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -61,15 +66,24 @@ class ProgramSelect(BaseProgramSelect):
         self._attr_unique_id = f"{controller.entry.data['mac']}_program_control_program"
 
     @property
+    def _program_labels(self):
+        return {program_label(program): program for program in self.controller.programs}
+
+    @property
     def options(self):
-        return self.controller.programs
+        return list(self._program_labels.keys())
 
     @property
     def current_option(self):
-        return self.controller.program
+        if self.controller.program is None:
+            return None
+        return program_label(self.controller.program)
 
     async def async_select_option(self, option: str) -> None:
-        self.controller.select_program(option)
+        program = self._program_labels.get(option)
+        if program is None:
+            raise ValueError(f"Unknown program label: {option}")
+        self.controller.select_program(program)
 
 
 class ParameterSelect(BaseProgramSelect):
@@ -89,6 +103,11 @@ class ParameterSelect(BaseProgramSelect):
     @property
     def options(self):
         options = self.controller.parameter_options(self.key)
+        if self.key == "spinSpeed":
+            try:
+                options = sorted(options, key=lambda value: float(value))
+            except (TypeError, ValueError):
+                pass
         return options or ["Unavailable"]
 
     @property
