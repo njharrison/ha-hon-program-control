@@ -1,5 +1,5 @@
 from __future__ import annotations
-from homeassistant.components.text import TextEntity
+from homeassistant.components.text import TextEntity, TextMode
 from .const import DOMAIN
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -10,8 +10,9 @@ class PresetNameText(TextEntity):
     _attr_has_entity_name = True
     _attr_name = "Preset Name"
     _attr_icon = "mdi:form-textbox"
-    _attr_native_min = 1
+    _attr_native_min = 0
     _attr_native_max = 64
+    _attr_mode = TextMode.TEXT
     def __init__(self, controller):
         self.controller = controller
         self._attr_unique_id = f"{controller.entry.data['mac']}_program_control_preset_name"
