@@ -73,7 +73,18 @@ class ProgramSelect(BaseProgramSelect):
 
     @property
     def options(self):
-        return sorted(self._program_labels.keys(), key=str.casefold)
+        labels = self._program_labels
+        recent_labels = [
+            program_label(program)
+            for program in self.controller.recent_programs
+            if program_label(program) in labels
+        ]
+        recent_set = set(recent_labels)
+        remaining = sorted(
+            (label for label in labels if label not in recent_set),
+            key=str.casefold,
+        )
+        return recent_labels + remaining
 
     @property
     def current_option(self):
