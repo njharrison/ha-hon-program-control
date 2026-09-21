@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import Store
 
 from .const import DOMAIN, PLATFORMS, HON_DOMAIN, CONF_MAC, CONF_HON_ENTRY
+
+STORAGE_VERSION = 1
 
 
 def _hon_connections(hass: HomeAssistant):
@@ -20,7 +23,6 @@ def get_hon_device(hass: HomeAssistant, entry: ConfigEntry):
     hon_key = entry.data.get(CONF_HON_ENTRY)
     connection = connections.get(hon_key)
 
-    # Fallback for an hOn entry whose unique_id changed.
     if connection is None and len(connections) == 1:
         connection = next(iter(connections.values()))
 
@@ -39,7 +41,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if device is None or "startProgram" not in device.commands:
         return False
 
-    hass.data[DOMAIN][entry.entry_id] = ProgramController(hass, entry, device)
+    controller = ProgramController(hass, entry, device)
+    await controller.async_initialize()
+    hass.data[DOMAIN][entry.entry_id] = controller
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
@@ -57,12 +61,27 @@ class ProgramController:
         self.entry = entry
         self.device = device
         self.listeners = set()
+        self.recent_programs = []
+        self.store = Store(
+            hass,
+            STORAGE_VERSION,
+            f"{DOMAIN}.{entry.data[CONF_MAC]}.recent_programs",
+        )
 
         command = self.command
         programs = list(command.get_programs().keys())
         self.program = programs[0] if programs else None
         if self.program is not None:
             command.set_program(self.program)
+
+    async def async_initialize(self):
+        stored = await self.store.async_load() or {}
+        valid = set(self.programs)
+        self.recent_programs = [
+            program
+            for program in stored.get("recent_programs", [])
+            if program in valid
+        ][:3]
 
     @property
     def command(self):
@@ -102,7 +121,6 @@ class ProgramController:
 
         result = []
         value = minimum
-        # Guard against malformed ranges.
         while value <= maximum and len(result) < 500:
             result.append(str(value))
             value += step
@@ -127,12 +145,21 @@ class ProgramController:
     async def async_start(self):
         if self.program is None:
             raise ValueError("No program selected")
-        # start_command applies current context and preserves the values selected
-        # on the current program before sending the existing hOn command.
+
         command = self.device.start_command(self.program, {
             key: parameter.value for key, parameter in self.parameters.items()
         })
-        await command.send()
+        result = await command.send()
+
+        if result:
+            self.recent_programs = [
+                self.program,
+                *[p for p in self.recent_programs if p != self.program],
+            ][:3]
+            await self.store.async_save({"recent_programs": self.recent_programs})
+            self._notify()
+
+        return result
 
     def add_listener(self, callback):
         self.listeners.add(callback)
