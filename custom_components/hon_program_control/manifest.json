@@ -1,7 +1,7 @@
 {
   "domain": "hon_program_control",
   "name": "hOn Program Control",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "documentation": "https://github.com/njharrison/ha-hon-program-control",
   "issue_tracker": "https://github.com/njharrison/ha-hon-program-control/issues",
   "codeowners": ["@njharrison"],
