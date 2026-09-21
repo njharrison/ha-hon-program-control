@@ -1,10 +1,19 @@
 # Changelog
 
+## 0.3.0
+
+- Make presets fully dynamic: type any name and save the current wash configuration.
+- Add Delete preset.
+- Preserve any presets already saved by 0.2.0.
+- Add controls for Prewash, Hygiene, Anti-crease, Good Night, Aqua Plus and three Extra Rinse flags.
+- Add Delay Time as a numeric control.
+- Program-specific controls become unavailable when the selected program does not support them.
+- Presets continue to capture all hOn parameters, including controls not shown in the UI.
+
 ## 0.2.0
 
 - Add persistent wash presets: Linen, Reds, Greys, Whites and Delicate.
-- Add a Preset selector.
-- Add a Save to preset button.
+- Add a Preset selector and Save to preset button.
 - Saving captures the selected hOn program and every parameter exposed by that program.
 - Selecting a configured preset restores its program and saved parameter values.
 - Presets persist across Home Assistant restarts.
@@ -31,4 +40,3 @@
 - Dynamic program selector using the existing hOn program catalogue.
 - Program-dependent temperature, spin-speed and soil-level selectors.
 - Start selected program button.
-- Designed as a companion to gvigroux/hon 0.8.4 without replacing or modifying it.
