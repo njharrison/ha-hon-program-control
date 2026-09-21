@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3
+
+- Put the three most recently started programs at the top of the program list.
+- Recent programs are ordered most-recent-first and persist across Home Assistant restarts.
+- The remainder of the program list stays alphabetical.
+
 ## 0.1.2
 
 - Sort program names alphabetically by their display label.
