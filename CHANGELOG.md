@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- Sort program names alphabetically by their display label.
+- Remove a leading `iot_` prefix from displayed program names while preserving the real hOn program ID.
+
 ## 0.1.1
 
 - Display program IDs as human-friendly title/Pascal-style labels without underscores.
