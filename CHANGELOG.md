@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1
+
+- Replace the three individual Extra Rinse switches with one Extra Rinses control.
+- Extra Rinses offers 0 through the number of rinse stages supported by the selected program.
+- The combined control maps back to hOn's underlying extraRinse1, extraRinse2 and extraRinse3 parameters, preserving preset compatibility.
+
 ## 0.3.0
 
 - Make presets fully dynamic: type any name and save the current wash configuration.
