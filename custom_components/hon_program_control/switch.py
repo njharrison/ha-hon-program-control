@@ -8,9 +8,6 @@ SWITCH_PARAMETERS = {
     "anticrease": ("Anti-crease", "mdi:tshirt-crew"),
     "goodNight": ("Good Night", "mdi:weather-night"),
     "acquaplus": ("Aqua Plus", "mdi:water-plus"),
-    "extraRinse1": ("Extra Rinse 1", "mdi:water-plus"),
-    "extraRinse2": ("Extra Rinse 2", "mdi:water-plus"),
-    "extraRinse3": ("Extra Rinse 3", "mdi:water-plus"),
 }
 
 async def async_setup_entry(hass, entry, async_add_entities):
