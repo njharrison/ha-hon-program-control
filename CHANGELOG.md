@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0
+
+- Add persistent wash presets: Linen, Reds, Greys, Whites and Delicate.
+- Add a Preset selector.
+- Add a Save to preset button.
+- Saving captures the selected hOn program and every parameter exposed by that program.
+- Selecting a configured preset restores its program and saved parameter values.
+- Presets persist across Home Assistant restarts.
+
 ## 0.1.3
 
 - Put the three most recently started programs at the top of the program list.
