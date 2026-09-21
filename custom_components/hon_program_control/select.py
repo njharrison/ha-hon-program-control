@@ -16,7 +16,9 @@ PARAMETERS = {
 
 
 def program_label(program: str) -> str:
-    """Turn an hOn program ID into a human-friendly Pascal/Title Case label."""
+    """Turn an hOn program ID into a human-friendly display label."""
+    if program.lower().startswith("iot_"):
+        program = program[4:]
     return " ".join(word.capitalize() for word in program.split("_"))
 
 
@@ -71,7 +73,7 @@ class ProgramSelect(BaseProgramSelect):
 
     @property
     def options(self):
-        return list(self._program_labels.keys())
+        return sorted(self._program_labels.keys(), key=str.casefold)
 
     @property
     def current_option(self):
