@@ -6,8 +6,8 @@ from homeassistant.helpers.storage import Store
 
 from .const import DOMAIN, PLATFORMS, HON_DOMAIN, CONF_MAC, CONF_HON_ENTRY
 
-STORAGE_VERSION = 2
-PRESET_NAMES = ["Linen", "Reds", "Greys", "Whites", "Delicate"]
+STORAGE_VERSION = 3
+LEGACY_PRESET_NAMES = ["Linen", "Reds", "Greys", "Whites", "Delicate"]
 
 
 def _hon_connections(hass: HomeAssistant):
@@ -26,7 +26,6 @@ def get_hon_device(hass: HomeAssistant, entry: ConfigEntry):
 
     if connection is None and len(connections) == 1:
         connection = next(iter(connections.values()))
-
     if connection is None:
         return None
 
@@ -64,7 +63,8 @@ class ProgramController:
         self.listeners = set()
         self.recent_programs = []
         self.presets = {}
-        self.selected_preset = PRESET_NAMES[0]
+        self.selected_preset = None
+        self.preset_name = ""
         self.store = Store(
             hass,
             STORAGE_VERSION,
@@ -81,18 +81,17 @@ class ProgramController:
         stored = await self.store.async_load() or {}
         valid = set(self.programs)
         self.recent_programs = [
-            program
-            for program in stored.get("recent_programs", [])
-            if program in valid
+            program for program in stored.get("recent_programs", []) if program in valid
         ][:3]
         self.presets = {
-            name: preset
+            str(name): preset
             for name, preset in stored.get("presets", {}).items()
-            if name in PRESET_NAMES and preset.get("program") in valid
+            if preset.get("program") in valid
         }
         selected = stored.get("selected_preset")
-        if selected in PRESET_NAMES:
+        if selected in self.presets:
             self.selected_preset = selected
+            self.preset_name = selected
 
     async def _async_save_settings(self):
         await self.store.async_save({
@@ -113,6 +112,10 @@ class ProgramController:
     def parameters(self):
         return self.command.parameters
 
+    @property
+    def preset_names(self):
+        return sorted(self.presets.keys(), key=str.casefold)
+
     def select_program(self, program: str):
         if program not in self.programs:
             raise ValueError(f"Unknown program: {program}")
@@ -130,13 +133,11 @@ class ProgramController:
         values = getattr(parameter, "values", None)
         if values is not None:
             return [str(v) for v in values]
-
         minimum = getattr(parameter, "min", None)
         maximum = getattr(parameter, "max", None)
         step = getattr(parameter, "step", None)
         if minimum is None or maximum is None or not step:
             return []
-
         result = []
         value = minimum
         while value <= maximum and len(result) < 500:
@@ -149,56 +150,69 @@ class ProgramController:
 
     def parameter_value(self, key: str):
         parameter = self.parameter(key)
-        if parameter is None:
-            return None
-        return str(parameter.value)
+        return None if parameter is None else str(parameter.value)
 
-    def set_parameter(self, key: str, value: str):
+    def set_parameter(self, key: str, value):
         parameter = self.parameter(key)
         if parameter is None:
             raise ValueError(f"Parameter {key} is not available for {self.program}")
-        parameter.value = value
+        parameter.value = str(value)
+        self._notify()
+
+    def set_preset_name(self, name: str):
+        self.preset_name = name.strip()
         self._notify()
 
     async def async_select_preset(self, name: str):
-        if name not in PRESET_NAMES:
+        preset = self.presets.get(name)
+        if preset is None:
             raise ValueError(f"Unknown preset: {name}")
         self.selected_preset = name
-        preset = self.presets.get(name)
-        if preset is not None:
-            self.select_program(preset["program"])
-            for key, value in preset.get("parameters", {}).items():
-                parameter = self.parameter(key)
-                if parameter is not None:
-                    try:
-                        parameter.value = value
-                    except ValueError:
-                        pass
+        self.preset_name = name
+        self.select_program(preset["program"])
+        for key, value in preset.get("parameters", {}).items():
+            parameter = self.parameter(key)
+            if parameter is not None:
+                try:
+                    parameter.value = str(value)
+                except ValueError:
+                    pass
         await self._async_save_settings()
         self._notify()
 
     async def async_save_preset(self):
+        name = self.preset_name.strip()
+        if not name:
+            raise ValueError("Enter a preset name before saving")
         if self.program is None:
             raise ValueError("No program selected")
-        self.presets[self.selected_preset] = {
+        self.presets[name] = {
             "program": self.program,
             "parameters": {
-                key: parameter.value
-                for key, parameter in self.parameters.items()
+                key: parameter.value for key, parameter in self.parameters.items()
             },
         }
+        self.selected_preset = name
+        await self._async_save_settings()
+        self._notify()
+
+    async def async_delete_preset(self):
+        name = self.selected_preset
+        if name is None:
+            return
+        self.presets.pop(name, None)
+        self.selected_preset = None
+        self.preset_name = ""
         await self._async_save_settings()
         self._notify()
 
     async def async_start(self):
         if self.program is None:
             raise ValueError("No program selected")
-
         command = self.device.start_command(self.program, {
             key: parameter.value for key, parameter in self.parameters.items()
         })
         result = await command.send()
-
         if result:
             self.recent_programs = [
                 self.program,
@@ -206,7 +220,6 @@ class ProgramController:
             ][:3]
             await self._async_save_settings()
             self._notify()
-
         return result
 
     def add_listener(self, callback):
