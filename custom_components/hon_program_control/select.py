@@ -6,6 +6,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
+from . import PRESET_NAMES
 
 
 PARAMETERS = {
@@ -28,7 +29,7 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     controller = hass.data[DOMAIN][entry.entry_id]
-    entities = [ProgramSelect(controller)]
+    entities = [PresetSelect(controller), ProgramSelect(controller)]
     entities.extend(
         ParameterSelect(controller, key, name, icon)
         for key, (name, icon) in PARAMETERS.items()
@@ -57,6 +58,33 @@ class BaseProgramSelect(SelectEntity):
         if self._remove_listener:
             self._remove_listener()
         await super().async_will_remove_from_hass()
+
+
+class PresetSelect(BaseProgramSelect):
+    _attr_name = "Preset"
+    _attr_icon = "mdi:washing-machine-alert"
+
+    def __init__(self, controller):
+        super().__init__(controller)
+        self._attr_unique_id = f"{controller.entry.data['mac']}_program_control_preset"
+
+    @property
+    def options(self):
+        return PRESET_NAMES
+
+    @property
+    def current_option(self):
+        return self.controller.selected_preset
+
+    @property
+    def extra_state_attributes(self):
+        return {
+            "saved": sorted(self.controller.presets.keys()),
+            "configured": self.controller.selected_preset in self.controller.presets,
+        }
+
+    async def async_select_option(self, option: str) -> None:
+        await self.controller.async_select_preset(option)
 
 
 class ProgramSelect(BaseProgramSelect):
