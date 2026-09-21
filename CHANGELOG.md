@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.4
+
+- Remove the combined `iot_wash_` prefix from displayed program names.
+- Continue removing plain `iot_` where present, without stripping legitimate uses of "wash" elsewhere in a program name.
+
+
 ## 0.3.3
 
 - Fix Delete preset remaining unavailable after selecting or saving a preset.
