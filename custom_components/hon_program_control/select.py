@@ -15,7 +15,10 @@ PARAMETERS = {
 
 
 def program_label(program: str) -> str:
-    if program.lower().startswith("iot_"):
+    lower = program.lower()
+    if lower.startswith("iot_wash_"):
+        program = program[9:]
+    elif lower.startswith("iot_"):
         program = program[4:]
     return " ".join(word.capitalize() for word in program.split("_"))
 
