@@ -14,9 +14,17 @@ class BaseProgramButton(ButtonEntity):
     _attr_has_entity_name = True
     def __init__(self, controller):
         self.controller = controller
+        self._remove_listener = None
     @property
     def device_info(self):
         return self.controller.device.device_info
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        self._remove_listener = self.controller.add_listener(self.async_write_ha_state)
+    async def async_will_remove_from_hass(self):
+        if self._remove_listener:
+            self._remove_listener()
+        await super().async_will_remove_from_hass()
 
 class SavePresetButton(BaseProgramButton):
     _attr_name = "Save preset"
